@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=audio_output
+GenericName=Choose your audio output device
+GenericName[de]=Wähle Dein Audio Gerät
+Exec=audio_output
+Icon=audio-speakers
+Comment=Choose your audio output device
+Comment[de]=Wähle Dein Audio Gerät
+Terminal=false
+Type=Application
+Categories=Settings;Audio;X-XFCE-PersonalSettings;
