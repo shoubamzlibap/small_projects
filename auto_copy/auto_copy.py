@@ -120,4 +120,4 @@ if __name__ == '__main__':
     if media_type == 'DATA':
         copy_large_files()
     # eject when done
-    subprocess.call(['eject'])
+    subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
