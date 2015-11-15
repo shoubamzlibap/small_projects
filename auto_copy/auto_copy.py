@@ -12,12 +12,13 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 # quality for dvd rips
 # one of 
 # 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
 # and probably a few more. Check HandBrake for details.
-rip_speed = 'veryslow'
+rip_speed = 'veryfast'
 # mount point for cdrom device
 cdrom_mnt = '/mnt/cdrom'
 # your cdrom device
@@ -50,7 +51,7 @@ def determine_media_type():
     """
     media_type = ''
     mount(cdrom_device, cdrom_mnt)
-    if os.path.exists(cdrom_mnt + '/VIDEO_TS'):
+    if os.path.exists(cdrom_mnt + '/VIDEO_TS') or os.path.exists(cdrom_mnt + '/video_ts'):
         media_type = 'VIDEO_DVD'
     else:
         media_type = 'DATA'
@@ -77,10 +78,10 @@ def rip_large_tracks():
     """
     Call HandbrakeCLI to rip large tracks
     """
-    handbrake_base_cmd = 'HandBrakeCLI -i /dev/sr0 -o /home/isaac/video/new/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' + rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
+    handbrake_base_cmd = '/bin/HandBrakeCLI -i /dev/sr0 -o /home/isaac/video/new/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' + rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
     track_num = 1
     while track_num <= max_tracks:
-        outfile_name = 'new_video_' + str(datetime.datetime.now()).replace(' ', '_') + '.mp4'
+        outfile_name = 'new_video_' + str(datetime.datetime.now()).replace(' ', '_').replace(':', '-') + '.mp4'
         handbrake_cmd = handbrake_base_cmd.replace('OUTFILE', outfile_name) + ' -t ' + str(track_num)
         track_num += 1
         if verbose: print(handbrake_cmd)
@@ -113,11 +114,12 @@ def get_recursive_file_list(root_dir):
 
 
 if __name__ == '__main__':
-    tray_open = subprocess.call(['/usr/local/bin/trayopen', cdrom_device])
-    if tray_open == 0: sys.exit(0)
     if os.path.exists(no_exec_file):
         if verbose: print('Exiting, found no exec file ' + no_exec_file)
         sys.exit(0)
+    time.sleep(3)
+    tray_open = subprocess.call(['/usr/local/bin/trayopen', cdrom_device])
+    if tray_open == 0: sys.exit(0)
     media_type = determine_media_type()
     if verbose: print('Media type found is ' + media_type)
     if media_type == 'VIDEO_DVD':
