@@ -13,6 +13,11 @@ import shutil
 import subprocess
 import sys
 
+# quality for dvd rips
+# one of 
+# 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
+# and probably a few more. Check HandBrake for details.
+rip_speed = 'veryslow'
 # mount point for cdrom device
 cdrom_mnt = '/mnt/cdrom'
 # your cdrom device
@@ -72,7 +77,7 @@ def rip_large_tracks():
     """
     Call HandbrakeCLI to rip large tracks
     """
-    handbrake_base_cmd = 'HandBrakeCLI -i /dev/sr0 -o /home/isaac/video/new/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset veryslow --h264-profile main --h264-level 4.0 --optimize'
+    handbrake_base_cmd = 'HandBrakeCLI -i /dev/sr0 -o /home/isaac/video/new/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' + rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
     track_num = 1
     while track_num <= max_tracks:
         outfile_name = 'new_video_' + str(datetime.datetime.now()).replace(' ', '_') + '.mp4'
