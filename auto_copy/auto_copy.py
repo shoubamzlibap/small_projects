@@ -149,6 +149,15 @@ def get_recursive_file_list(root_dir):
             file_list.append(os.path.join(root,file))
     return file_list
 
+def already_running():
+    """
+    Check if a process of the same name is already running
+    """
+    this_program = os.path.basename(sys.argv[0])
+    process = subprocess.Popen('ps -elf| grep ' + this_program, shell=True, stdout=subprocess.PIPE,)
+    stdout_list = process.communicate()[0]
+    if stdout_list: return True
+    return False
 
 if __name__ == '__main__':
     ###
