@@ -41,8 +41,6 @@ log_file = '/tmp/auto_copy.log'
 default_log_level = 'debug'
 # location of the trayopen binary
 trayopen = '/usr/local/bin/trayopen'
-# directory used as lock
-lock_dir = '/tmp/auto_copy.lock'
 
 # ENVIRONMENT will be passed to subprocess.Popen()
 ENVIRONMENT = {
