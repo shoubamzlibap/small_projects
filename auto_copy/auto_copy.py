@@ -162,10 +162,14 @@ def already_running():
     """
     Check if a process of the same name is already running
     """
-    this_program = os.path.basename(sys.argv[0])
+    this_program = sys.argv[0]
+    logger.debug('this_program: ' + this_program)
     process = subprocess.Popen('ps -elf| grep ' + this_program, shell=True, stdout=subprocess.PIPE,)
-    stdout_list = process.communicate()[0]
-    if stdout_list: return True
+    stdout_list = process.communicate()[0].split('\n')
+    logger.debug('getting stdout_list')
+    logger.debug('stdout_list: ' + ', '.join(stdout_list))
+    logger.debug('stdout_list len: ' +  str(len(stdout_list)))
+    if len(stdout_list) > 4: return True
     return False
 
 if __name__ == '__main__':
@@ -201,7 +205,7 @@ if __name__ == '__main__':
     if tray_open == 0: 
         logger.debug('Exiting as tray is currently open')
         sys.exit(0)
-    if already_running: 
+    if already_running(): 
         logger.debug('PID ' + my_pid + ' exiting as another instance of this script is already running')
         sys.exit(0)
         
