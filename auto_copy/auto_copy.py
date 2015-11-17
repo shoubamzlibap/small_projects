@@ -103,7 +103,10 @@ def mount(cdrom_device, cdrom_mnt):
     """
     mount_command = 'mount ' + cdrom_device + ' ' + cdrom_mnt
     logger.debug('Executing: ' + mount_command)
-    subprocess.call(mount_command.split(), stdout=dev_zero, stderr=dev_zero)
+    result = subprocess.call(mount_command.split(), stdout=dev_zero, stderr=dev_zero)
+    if result != 0:
+        logger.info('Could not mount optical drive - probably empty. Exiting')
+        sys.exit(0)
 
 def umount(cdrom_device):
     """
@@ -200,14 +203,13 @@ if __name__ == '__main__':
     if tray_open == 0: 
         logger.debug('Exiting as tray is currently open')
         sys.exit(0)
+    if already_running: 
+        logger.debug('PID ' + my_pid + ' exiting as another instance of this script is already running')
+        sys.exit(0)
         
     ###
     # Action
     ###
-    has_lock = subprocess.call(['mkdir', lock_dir])
-    if has_lock != 0: 
-        logger.debug('PID ' + my_pid + ' exiting as could not acquire lock ' + lock_dir)
-        sys.exit(0)
     media_type = determine_media_type()
     if media_type == 'VIDEO_DVD':
         rip_large_tracks()
@@ -218,4 +220,3 @@ if __name__ == '__main__':
     # eject when done
     logger.info('All tasks finished, ejecting')
     subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
-    subprocess.call(['rmdir', lock_dir])
