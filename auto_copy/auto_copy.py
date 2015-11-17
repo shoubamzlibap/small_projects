@@ -19,7 +19,7 @@ import time
 # one of 
 # 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
 # and probably a few more. Check HandBrake for details.
-rip_speed = 'veryfast'
+rip_speed = 'veryslow'
 # mount point for cdrom device
 cdrom_mnt = '/mnt/cdrom'
 # your cdrom device
@@ -41,6 +41,8 @@ log_file = '/tmp/auto_copy.log'
 default_log_level = 'debug'
 # location of the trayopen binary
 trayopen = '/usr/local/bin/trayopen'
+# directory used as lock
+lock_dir = '/tmp/auto_copy.lock'
 
 # ENVIRONMENT will be passed to subprocess.Popen()
 ENVIRONMENT = {
@@ -58,6 +60,8 @@ mega = kilo * kilo
 
 logger = logging.getLogger('auto_copy')
 logger.setLevel(logging.DEBUG)
+
+my_pid = str(os.getpid())
 
 LOG_LEVELS = {
     'info': logging.INFO,
@@ -79,15 +83,18 @@ def determine_media_type():
 
     returns one of ['VIDEO_DVD', 'DATA']
     """
-    logger.debug('Determining media type')
+    logger.debug('Determining media type. PID ' + my_pid)
     media_type = ''
+    time.sleep(5)
     mount(cdrom_device, cdrom_mnt)
+    time.sleep(5)
     if os.path.exists(cdrom_mnt + '/VIDEO_TS') or os.path.exists(cdrom_mnt + '/video_ts'):
         media_type = 'VIDEO_DVD'
     else:
         media_type = 'DATA'
+    logger.debug(cdrom_mnt + ' contains ' + '\n'.join(os.listdir(cdrom_mnt)))
+    logger.debug('Media type found was ' + media_type + ' PID ' + my_pid)
     umount(cdrom_device)
-    logger.debug('Media type found was ' + media_type)
     return media_type
 
 def mount(cdrom_device, cdrom_mnt):
@@ -129,9 +136,10 @@ def copy_large_files():
     logger.debug('Starting to copy large files')
     mount(cdrom_device, cdrom_mnt)
     file_list = get_recursive_file_list(cdrom_mnt)
+    logger.debug('File list: ' + '\n'.join(file_list))
     for file_path in file_list:
         size_in_bytes = os.path.getsize(file_path)
-        logger.debug('Considering ' + file_path + ' for being copied')
+        logger.debug('Considering for copy: ' + str(size_in_bytes) + 'B ' + file_path)
         if size_in_bytes / mega > min_file_size:
             logger.debug('Copying ' + file_path + ' to ' + data_dir)
             shutil.copy(file_path, data_dir)        
@@ -178,10 +186,13 @@ if __name__ == '__main__':
     logger.addHandler(ch)
     logger.addHandler(fh)
 
+    ###
+    # some checks bevor we start
+    ###
     if os.path.exists(no_exec_file):
         logger.info('Exiting, found no exec file ' + no_exec_file)
         sys.exit(0)
-    time.sleep(3)
+    time.sleep(5)
     if not os.path.exists(trayopen):
         logger.debug('ERROR: Could not find ' + trayopen)
         sys.exit(1)
@@ -189,12 +200,22 @@ if __name__ == '__main__':
     if tray_open == 0: 
         logger.debug('Exiting as tray is currently open')
         sys.exit(0)
+        
+    ###
+    # Action
+    ###
+    has_lock = subprocess.call(['mkdir', lock_dir])
+    if has_lock != 0: 
+        logger.debug('PID ' + my_pid + ' exiting as could not acquire lock ' + lock_dir)
+        sys.exit(0)
     media_type = determine_media_type()
-    if verbose: print('Media type found is ' + media_type)
     if media_type == 'VIDEO_DVD':
         rip_large_tracks()
-    if media_type == 'DATA':
+    elif media_type == 'DATA':
         copy_large_files()
+    else:
+        logger.warn('Could not determine media type')
     # eject when done
     logger.info('All tasks finished, ejecting')
     subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
+    subprocess.call(['rmdir', lock_dir])
