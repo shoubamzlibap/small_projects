@@ -216,6 +216,7 @@ class Lock:
         if not os.path.isdir(self.lock): return
         pids = os.listdir(self.lock)
         if len(pids) > 1: raise Exception('ERROR: Found more then one lock - ' + ', '.join(pids))
+        if len(pids) == 0: return #someone else is either aquirein or releasing the lock
         if int(pids[0]) != self.my_pid: return
         os.rmdir(self.pid_lock)
         os.rmdir(self.lock)
