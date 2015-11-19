@@ -1,6 +1,10 @@
 # auto_copy
 Automatically copy CD/DVD contents after tray close. This is usefull for a headless
 computer that you want to use to copy lots of optical disks to a hard drive.
+This will only work on a Linux machine. I used a fedora 22 server when I developed it, but it
+should work on any Linux distro that has python and HandBrakeCLI. Note that the latter is
+usually not provided in the standard repos, but is available in some additional repo. Google
+will be your friend.
 
 The script auto_copy.py will distinguish between data disks and video DVDs.
 The contents of data disks (files larger then a configurable size) will be
@@ -14,13 +18,13 @@ intormation should be there.
 
 ### auto_copy.py
 Put the script somewhere on your system, possibly where you have access as a normal user as you
-might want to adapt some settings from time to time. I use `/home/isaac/bin/auto_copy.sh`.
+might want to adapt some settings from time to time. I use `/home/isaac/bin/auto_copy.py`.
 Adapt it to your needs, and make sure you put that path in the udev rule described below.
 
 ### udev
 Deploy the following udev rule (adapt to your local system)
 
-    SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{ID_PATH}=="pci-0000:00:1f.2-scsi-1:0:0:0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.sh"
+    SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{ID_PATH}=="pci-0000:00:1f.2-scsi-1:0:0:0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.py"
 
 Put this in a file called /etc/udev/rules.d/auto_copy.rule (or whatever name suits you).  Reboot or reload the udev config with `udevadm control --reload`.
 
@@ -38,4 +42,6 @@ You must put the binary in `/usr/local/bin` and make it executable:
     sudo cp trayopen /usr/local/bin
     sudo chmod 755 /usr/local/bin/trayopen
 
-
+### HandBrakeCLI
+You will need HandBrakeCLI installed on your system. Use google to find out how to install
+HandBrakeCLI on your linux distribution.
