@@ -213,13 +213,14 @@ class Lock:
 
         Arguments are manadatory by signal.signal
         """
-        if not os.path.isdir(self.lock): return
+        if not os.path.isdir(self.lock): sys.exit(0)
         pids = os.listdir(self.lock)
         if len(pids) > 1: raise Exception('ERROR: Found more then one lock - ' + ', '.join(pids))
-        if len(pids) == 0: return #someone else is either aquirein or releasing the lock
-        if int(pids[0]) != self.my_pid: return
+        if len(pids) == 0: sys.exit(0) #someone else is either aquirein or releasing the lock
+        if int(pids[0]) != self.my_pid: sys.exit(0)
         os.rmdir(self.pid_lock)
         os.rmdir(self.lock)
+        sys.exit(0)
 
     def make_singular(self):
         """
