@@ -7,10 +7,12 @@
 
 # 11-NOV-2015 - Isaac Hailperin <isaac.hailperin@gmail.com> - initial version
 
+import atexit
 import datetime
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -158,19 +160,58 @@ def get_recursive_file_list(root_dir):
             file_list.append(os.path.join(root,file))
     return file_list
 
-def already_running():
+
+class Lock:
     """
-    Check if a process of the same name is already running
+    Simple implementation of a lock. Should be cleaned up on almost any exit,
+    with the notable exception of SIGKILL (cannot be cought by underlying C library).
     """
-    this_program = sys.argv[0]
-    logger.debug('this_program: ' + this_program)
-    process = subprocess.Popen('ps -elf| grep ' + this_program, shell=True, stdout=subprocess.PIPE,)
-    stdout_list = process.communicate()[0].split('\n')
-    logger.debug('getting stdout_list')
-    logger.debug('stdout_list: ' + ', '.join(stdout_list))
-    logger.debug('stdout_list len: ' +  str(len(stdout_list)))
-    if len(stdout_list) > 4: return True
-    return False
+
+    def __init__(self, catch_signals=None):
+        """
+        Set a few attributes, and call needed methods
+        """
+        self.catch_signals = catch_signals
+        lock_dir = '/tmp'
+        lock_name = os.path.basename(sys.argv[0])
+        self.lock = os.path.join(lock_dir, lock_name) 
+        self.my_pid = os.getpid()
+        self.pid_lock = os.path.join(self.lock, str(self.my_pid))
+        self.make_singular()
+
+    def aquire_lock(self):
+        """
+        Acquire a lock
+        """
+        try:
+            os.mkdir(self.lock)
+            os.mkdir(self.pid_lock)
+        except OSError:
+            logger.info('Could not aquire lock, exiting (PID ' + str(self.my_pid) + ')')
+            sys.exit(0)
+
+    def release_lock(self, signal_num, stack_frame ):
+        """
+        Release a lock - only if it belongs to this PID
+
+        Arguments are manadatory by signal.signal
+        """
+        if not os.path.isdir(self.lock): return
+        pids = os.listdir(self.lock)
+        if len(pids) > 1: raise Exception('ERROR: Found more then one lock - ' + ', '.join(pids))
+        if int(pids[0]) != self.my_pid: return
+        os.rmdir(self.pid_lock)
+        os.rmdir(self.lock)
+
+    def make_singular(self):
+        """
+        handle lock management, to insure there is only a singualr instance running
+        """
+        atexit.register(self.release_lock, None, None)
+        for sig in (signal.SIGABRT, signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, self.release_lock)
+        self.aquire_lock()
+
 
 if __name__ == '__main__':
     ###
@@ -194,6 +235,7 @@ if __name__ == '__main__':
     ###
     # some checks bevor we start
     ###
+    Lock()
     if os.path.exists(no_exec_file):
         logger.info('Exiting, found no exec file ' + no_exec_file)
         sys.exit(0)
@@ -205,10 +247,7 @@ if __name__ == '__main__':
     if tray_open == 0: 
         logger.debug('Exiting as tray is currently open')
         sys.exit(0)
-    if already_running(): 
-        logger.debug('PID ' + my_pid + ' exiting as another instance of this script is already running')
-        sys.exit(0)
-        
+       
     ###
     # Action
     ###
