@@ -12,12 +12,30 @@ that too.
 For now this is very rudimentary and not very userfriendly, but the relevant
 intormation should be there.
 
-Have a look at the first few lines of auto_copy.py - there you will find an
-example for a udev rule that will trigger the script. Put it in a file with a .rule
-extension in /etc/udev/rules.d. Reboot or reload the udev config with `udevadm control --reload`.
+### auto_copy.py
+Put the script somewhere on your system, possibly where you have access as a normal user as you
+might want to adapt some settings from time to time. I use `/home/isaac/bin/auto_copy.sh`.
+Adapt it to your needs, and make sure you put that path in the udev rule described below.
 
+### udev
+Deploy the following udev rule (adapt to your local system)
+
+    SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{ID_PATH}=="pci-0000:00:1f.2-scsi-1:0:0:0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.sh"
+
+Put this in a file called /etc/udev/rules.d/auto_copy.rule (or whatever name suits you).  Reboot or reload the udev config with `udevadm control --reload`.
+
+### trayopen
 The script also needs to determine if the tray is open or closed (as this is not
-determined by udev - udev just notices changes). Therefor a small C programm is
-provided called trayopen. Use the binary from this repo or compile it from source.
-Have a look at the source on how to do this. You must put the binary in `/usr/local/bin`
-and make sure it is executable.
+determined by udev - udev just notices changes). Unfortunatly there is no standard
+tool on Linux to determine this.
+
+Therefor a small C programm is
+provided called `trayopen`. Use the binary from this repo or compile it from source which is
+also provided here (`trayopen.c`).
+You must put the binary in `/usr/local/bin` and make it executable:
+
+    gcc -o trayopen trayopen.c
+    sudo cp trayopen /usr/local/bin
+    sudo chmod 755 /usr/local/bin/trayopen
+
+

@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-# auto_copy.py
-# Automatically copy stuff from the CDRom drive to disk.
-# This is meant to be called via udev trigger. Details shall follow.
-# example for udev rule:
-#SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{ID_PATH}=="pci-0000:00:1f.2-scsi-1:0:0:0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.sh"
+"""
+auto_copy.py
+Automatically copy stuff from the CDRom drive to disk.
+This script will determine if it is a data disk or a
+video DVD and act accordingly. It uses HandBrakeCLI
+to rip video DVDs.
 
+This is meant to be called via udev trigger but can also be
+used manually.
+"""
 # 11-NOV-2015 - Isaac Hailperin <isaac.hailperin@gmail.com> - initial version
 
 import atexit
@@ -28,9 +32,6 @@ cdrom_mnt = '/mnt/cdrom'
 cdrom_device = '/dev/sr0'
 # place where data should be put
 data_dir = '/mnt/video/new'
-# print information about what is going on
-# also print output of shell commands
-verbose = True
 # minimum size of files to be copied, in MB
 min_file_size = 10
 # maximum number of tracks attempted to be ripped from DVD
@@ -57,10 +58,6 @@ ENVIRONMENT = {
 kilo = 1024
 mega = kilo * kilo
 
-
-logger = logging.getLogger('auto_copy')
-logger.setLevel(logging.DEBUG)
-
 my_pid = str(os.getpid())
 
 LOG_LEVELS = {
@@ -70,12 +67,14 @@ LOG_LEVELS = {
     'error': logging.ERROR,
     'critical': logging.CRITICAL, }
 
-if verbose:
+# used for subprocess calls - print stdout and stderr if log level is debug
+if default_log_level == 'debug':
     dev_zero = None
 else:
     dev_zero = open('/dev/zero','w')
 
-
+logger = logging.getLogger('auto_copy')
+logger.setLevel(LOG_LEVELS[default_log_level])
 
 def determine_media_type():
     """
@@ -160,6 +159,25 @@ def get_recursive_file_list(root_dir):
             file_list.append(os.path.join(root,file))
     return file_list
 
+def setup_logging():
+    """
+    Do some setup for logging
+    """
+    # create file handler
+    fh = logging.FileHandler(log_file)
+    fh.setLevel(LOG_LEVELS[default_log_level])
+    # create console handler
+    ch = logging.StreamHandler()
+    ch.setLevel(LOG_LEVELS[default_log_level])
+    # create formatter and add it to the handlers
+    ch_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh_formatter = ch_formatter
+    ch.setFormatter(ch_formatter)
+    fh.setFormatter(fh_formatter)
+    # add the handlers to logger
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+
 
 class Lock:
     """
@@ -167,11 +185,10 @@ class Lock:
     with the notable exception of SIGKILL (cannot be cought by underlying C library).
     """
 
-    def __init__(self, catch_signals=None):
+    def __init__(self):
         """
         Set a few attributes, and call needed methods
         """
-        self.catch_signals = catch_signals
         lock_dir = '/tmp'
         lock_name = os.path.basename(sys.argv[0])
         self.lock = os.path.join(lock_dir, lock_name) 
@@ -214,28 +231,13 @@ class Lock:
 
 
 if __name__ == '__main__':
-    ###
-    # Logging
-    ###
-    # create file handler
-    fh = logging.FileHandler(log_file)
-    fh.setLevel(LOG_LEVELS[default_log_level])
-    # create console handler
-    ch = logging.StreamHandler()
-    ch.setLevel(LOG_LEVELS[default_log_level])
-    # create formatter and add it to the handlers
-    ch_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh_formatter = ch_formatter
-    ch.setFormatter(ch_formatter)
-    fh.setFormatter(fh_formatter)
-    # add the handlers to logger
-    logger.addHandler(ch)
-    logger.addHandler(fh)
-
+    setup_logging()
+    # only one instance running at a time
+    Lock()
+    time.sleep(60)
     ###
     # some checks bevor we start
     ###
-    Lock()
     if os.path.exists(no_exec_file):
         logger.info('Exiting, found no exec file ' + no_exec_file)
         sys.exit(0)
