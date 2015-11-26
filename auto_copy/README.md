@@ -25,7 +25,7 @@ Adapt it to your needs, and make sure you put that path in the udev rule describ
 ### udev
 Deploy the following udev rule (adapt to your local system)
 
-    SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{ID_PATH}=="pci-0000:00:1f.2-scsi-1:0:0:0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.py"
+    SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.py"
 
 Put this in a file called /etc/udev/rules.d/auto_copy.rule (or whatever name suits you).  Reboot or reload the udev config with `udevadm control --reload`.
 
