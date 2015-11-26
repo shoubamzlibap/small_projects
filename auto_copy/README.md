@@ -13,6 +13,7 @@ Video DVDs will be ripped with HandBrakeCLI, so you will need to install
 that too.
 
 ## Setup
+**This is currently outdated - updates should follow soon**
 For now this is very rudimentary and not very userfriendly, but the relevant
 intormation should be there.
 

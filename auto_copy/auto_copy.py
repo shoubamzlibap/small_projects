@@ -25,13 +25,14 @@ import time
 # one of 
 # 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
 # and probably a few more. Check HandBrake for details.
-rip_speed = 'veryslow'
+rip_speed = 'veryfast'
 # mount point for cdrom device
 cdrom_mnt = '/mnt/cdrom'
 # your cdrom device
 cdrom_device = '/dev/sr0'
 # place where data should be put
-data_dir = '/mnt/video/new'
+#data_dir = '/mnt/video/new'
+data_dir = '/var/lib/mysql/videos'
 # minimum size of files to be copied, in MB
 min_file_size = 10
 # maximum number of tracks attempted to be ripped from DVD
@@ -72,9 +73,71 @@ if default_log_level == 'debug':
     dev_zero = None
 else:
     dev_zero = open('/dev/zero','w')
+DEV_ZERO = open('/dev/zero','w')
 
 logger = logging.getLogger('auto_copy')
 logger.setLevel(LOG_LEVELS[default_log_level])
+
+class CouldNotMountException(Exception):
+    pass
+
+class CouldNotAcquireLockException(Exception):
+    pass
+
+class Lock:
+    """
+    Simple implementation of a lock. Should be cleaned up on almost any exit,
+    with the notable exception of SIGKILL (cannot be cought by underlying C library).
+    """
+
+    def __init__(self):
+        """
+        Set a few attributes, and call needed methods
+        """
+        lock_dir = '/tmp'
+        lock_name = os.path.basename(sys.argv[0])
+        self.lock = os.path.join(lock_dir, lock_name) 
+        self.my_pid = os.getpid()
+        self.pid_lock = os.path.join(self.lock, str(self.my_pid))
+        self.make_singular()
+
+    def aquire_lock(self):
+        """
+        Acquire a lock
+        """
+        try:
+            os.mkdir(self.lock)
+            os.mkdir(self.pid_lock)
+            logger.debug('Aqcuired lock')
+        except OSError:
+            logger.info('Could not aquire lock, raising CouldNotAcquireLockException (PID ' + str(self.my_pid) + ')')
+            raise CouldNotAcquireLockException()
+
+    def release_lock(self, signal_num, stack_frame ):
+        """
+        Release a lock - only if it belongs to this PID
+
+        Arguments are manadatory by signal.signal
+        """
+        if not os.path.isdir(self.lock): return
+        pids = os.listdir(self.lock)
+        if len(pids) > 1: raise Exception('ERROR: Found more then one lock - ' + ', '.join(pids))
+        if len(pids) == 0: return #someone else is either aquirein or releasing the lock
+        if int(pids[0]) != self.my_pid: return
+        os.rmdir(self.pid_lock)
+        os.rmdir(self.lock)
+        logger.debug('Lock released')
+        return
+
+    def make_singular(self):
+        """
+        handle lock management, to insure there is only a singualr instance running
+        """
+        atexit.register(self.release_lock, None, None)
+        for sig in (signal.SIGABRT, signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, self.release_lock)
+        self.aquire_lock()
+
 
 def determine_media_type():
     """
@@ -104,8 +167,8 @@ def mount(cdrom_device, cdrom_mnt):
     logger.debug('Executing: ' + mount_command)
     result = subprocess.call(mount_command.split(), stdout=dev_zero, stderr=dev_zero)
     if result != 0:
-        logger.info('Could not mount optical drive - probably empty. Exiting')
-        sys.exit(0)
+        logger.info('Could not mount optical drive - probably empty.')
+        raise CouldNotMountException()
 
 def umount(cdrom_device):
     """
@@ -119,23 +182,24 @@ def rip_large_tracks():
     """
     Call HandbrakeCLI to rip large tracks
     """
-    logger.debug('Starting to rip large tracks')
-    handbrake_base_cmd = '/bin/HandBrakeCLI -i /dev/sr0 -o /home/isaac/video/new/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' + rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
+    logger.info('Starting to rip large tracks')
+    handbrake_base_cmd = '/bin/HandBrakeCLI -i /dev/sr0 -o ' + data_dir + '/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 -E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 --audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' + rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
     track_num = 1
     while track_num <= max_tracks:
         outfile_name = 'new_video_' + str(datetime.datetime.now()).replace(' ', '_').replace(':', '-') + '.mp4'
         handbrake_cmd = handbrake_base_cmd.replace('OUTFILE', outfile_name) + ' -t ' + str(track_num)
         track_num += 1
         logger.debug('Executing: ' + handbrake_cmd)
-        process = subprocess.Popen(handbrake_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ENVIRONMENT)
-        (stdoutdata, stderrdata) = process.communicate() # commuicate() also waits for the process to finish
-        if stderrdata: logger.debug(stderrdata)
+        subprocess.call(handbrake_cmd, stdout=DEV_ZERO, stderr=DEV_ZERO, shell=True)
+        #process = subprocess.Popen(handbrake_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ENVIRONMENT)
+        #(stdoutdata, stderrdata) = process.communicate() # commuicate() also waits for the process to finish
+        #if stderrdata: logger.debug(stderrdata)
 
 def copy_large_files():
     """ 
     Copy large files from cdrom
     """
-    logger.debug('Starting to copy large files')
+    logger.info('Starting to copy large files')
     mount(cdrom_device, cdrom_mnt)
     file_list = get_recursive_file_list(cdrom_mnt)
     logger.debug('File list: ' + '\n'.join(file_list))
@@ -178,90 +242,60 @@ def setup_logging():
     logger.addHandler(ch)
     logger.addHandler(fh)
 
-
-class Lock:
+def auto_copy():
     """
-    Simple implementation of a lock. Should be cleaned up on almost any exit,
-    with the notable exception of SIGKILL (cannot be cought by underlying C library).
+    do the auto copy of stuff from optical disc
     """
-
-    def __init__(self):
-        """
-        Set a few attributes, and call needed methods
-        """
-        lock_dir = '/tmp'
-        lock_name = os.path.basename(sys.argv[0])
-        self.lock = os.path.join(lock_dir, lock_name) 
-        self.my_pid = os.getpid()
-        self.pid_lock = os.path.join(self.lock, str(self.my_pid))
-        self.make_singular()
-
-    def aquire_lock(self):
-        """
-        Acquire a lock
-        """
-        try:
-            os.mkdir(self.lock)
-            os.mkdir(self.pid_lock)
-        except OSError:
-            logger.info('Could not aquire lock, exiting (PID ' + str(self.my_pid) + ')')
-            sys.exit(0)
-
-    def release_lock(self, signal_num, stack_frame ):
-        """
-        Release a lock - only if it belongs to this PID
-
-        Arguments are manadatory by signal.signal
-        """
-        if not os.path.isdir(self.lock): sys.exit(0)
-        pids = os.listdir(self.lock)
-        if len(pids) > 1: raise Exception('ERROR: Found more then one lock - ' + ', '.join(pids))
-        if len(pids) == 0: sys.exit(0) #someone else is either aquirein or releasing the lock
-        if int(pids[0]) != self.my_pid: sys.exit(0)
-        os.rmdir(self.pid_lock)
-        os.rmdir(self.lock)
-        sys.exit(0)
-
-    def make_singular(self):
-        """
-        handle lock management, to insure there is only a singualr instance running
-        """
-        atexit.register(self.release_lock, None, None)
-        for sig in (signal.SIGABRT, signal.SIGINT, signal.SIGTERM):
-            signal.signal(sig, self.release_lock)
-        self.aquire_lock()
-
-
-if __name__ == '__main__':
-    setup_logging()
     # only one instance running at a time
-    Lock()
-    time.sleep(60)
+    try:
+        my_lock = Lock()
+    except CouldNotAcquireLockException:
+        return
     ###
     # some checks bevor we start
     ###
     if os.path.exists(no_exec_file):
         logger.info('Exiting, found no exec file ' + no_exec_file)
-        sys.exit(0)
-    time.sleep(5)
+        logger.debug('Explicitly releasing lock since no exec file found')
+        my_lock.release_lock(None, None)
+        return
+    logger.debug('Sleeping 10 secs to allow drive to settle')
+    time.sleep(10)
+    logger.debug('Slept 10 secs')
     if not os.path.exists(trayopen):
         logger.debug('ERROR: Could not find ' + trayopen)
+        logger.debug('Explicitly releasing lock as trayopen was not found')
+        my_lock.release_lock(None, None)
         sys.exit(1)
     tray_open = subprocess.call([trayopen, cdrom_device])
     if tray_open == 0: 
         logger.debug('Exiting as tray is currently open')
-        sys.exit(0)
-       
+        logger.debug('Explicitly releasing lock as tray is currently open')
+        my_lock.release_lock(None, None)
+        return
     ###
     # Action
     ###
-    media_type = determine_media_type()
-    if media_type == 'VIDEO_DVD':
-        rip_large_tracks()
-    elif media_type == 'DATA':
-        copy_large_files()
-    else:
-        logger.warn('Could not determine media type')
-    # eject when done
-    logger.info('All tasks finished, ejecting')
-    subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
+    try:
+        media_type = determine_media_type()
+        if media_type == 'VIDEO_DVD':
+            rip_large_tracks()
+        elif media_type == 'DATA':
+            copy_large_files()
+        else:
+            logger.warn('Could not determine media type')
+        # eject when done
+        logger.info('All tasks finished, ejecting')
+        subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
+    except Exception:
+        logger.warn('Something went wrong, ejecting anyway')
+        subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
+    finally:
+        logger.debug('Explicitly releasing lock in finally block')
+        my_lock.release_lock(None, None)
+        subprocess.call(['eject'], stdout=dev_zero, stderr=dev_zero)
+
+if __name__ == '__main__':
+    setup_logging()
+    auto_copy()
+
