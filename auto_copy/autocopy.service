@@ -1,0 +1,8 @@
+[Unitt]
+Description=Start auto_copy.py script
+
+[Service]
+ExecStart=/home/isaac/bin/auto_copy_daemon.py
+
+[Install]
+WantedBy=multi-user.target

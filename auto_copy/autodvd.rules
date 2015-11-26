@@ -1,4 +1,4 @@
 # Call 
 # udevadm control --reload
 # to reload after changes
-SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/home/isaac/bin/end_siguser1.sh"
+SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/home/isaac/bin/send_siguser1.sh"

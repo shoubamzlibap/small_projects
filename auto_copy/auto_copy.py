@@ -25,14 +25,14 @@ import time
 # one of 
 # 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
 # and probably a few more. Check HandBrake for details.
-rip_speed = 'veryfast'
+rip_speed = 'veryslow'
 # mount point for cdrom device
 cdrom_mnt = '/mnt/cdrom'
 # your cdrom device
 cdrom_device = '/dev/sr0'
 # place where data should be put
-#data_dir = '/mnt/video/new'
-data_dir = '/var/lib/mysql/videos'
+data_dir = '/mnt/video/new'
+#data_dir = '/var/lib/mysql/videos'
 # minimum size of files to be copied, in MB
 min_file_size = 10
 # maximum number of tracks attempted to be ripped from DVD
