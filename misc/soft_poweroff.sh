@@ -53,7 +53,6 @@ EOF
 # exit if load exeeds a certain level
 # load is defined to be the average over the last 5 minutes
 check_load(){
-    echo checking load
     load=$(uptime |awk '{print $10}' |sed 's/,//')
     num_processors=$(grep processor /proc/cpuinfo |wc -l)
     rel_load=$(echo "scale=3; $load / $num_processors" |bc)
@@ -62,17 +61,17 @@ check_load(){
         echo "relative load is too high (${rel_load}), not shutting down"
         exit 0
     fi
-    echo load not high enough to prevent shutdown
+    echo "Load not high enough to prevent shutdown"
 }
 
 # exit if certain processes exist
 check_processes(){
-    echo checking for certain processes
     ps -elf |grep -v grep |grep -E "${COMMAND_LIST}" >/dev/null
     if [ $? == "0" ]; then
-        echo Found at least one of ${COMMAND_LIST}
+        echo "Found at least one of ${COMMAND_LIST}, not shutting down"
         exit 0
     fi
+    echo "No processes found that would prevent shutdown"
 }
 
 # check if someone is logged in
@@ -82,6 +81,7 @@ check_logins() {
         echo "Found $num_logged_in sessions, not shutting down"
         exit 0
     fi
+    echo "Found no logins that would prevent shutdown"
 }
 
 # check if machine is up for a while
@@ -91,10 +91,14 @@ check_uptime() {
         echo "System uptime is shorter then $MIN_UPTIME seconds, not shutting down"
         exit 0
     fi
+    echo "System uptime is not short enough to prevent shutdown"
 }
 
 check_uptime
 check_logins
 check_load
 check_processes
+echo "System will be automatically powered off in 60 seconds" |wall
+sleep 60
 poweroff
+
