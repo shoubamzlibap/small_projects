@@ -76,7 +76,7 @@ check_processes(){
 
 # check if someone is logged in
 check_logins() {
-    num_logged_in=$(who |grep -v -E ${IGNORE_USERS} |wc -l)
+    num_logged_in=$(who |grep -v -E ${IGNORE_USERS} 2>/dev/null |wc -l)
     if [ $num_logged_in != "0" ]; then 
         echo "Found $num_logged_in sessions, not shutting down"
         exit 0
@@ -98,7 +98,4 @@ check_uptime
 check_logins
 check_load
 check_processes
-echo "System will be automatically powered off in 60 seconds" |wall
-sleep 60
-poweroff
-
+/usr/sbin/poweroff
