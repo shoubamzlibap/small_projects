@@ -45,6 +45,9 @@ install_files(){
     if [ ! -f ${config} ]; then
         install auto_copy.yml.example ${config} -o root -g root
     fi
+    udevadm control --reload
+    echo "You must start the autocopy service with 'sudo systemctl start autocopy.service'"
+    echo "If you want autocopy to automatically start after boot, issue 'sudo systemctl enable autocopy.service'"
 }
 
 check_files(){
