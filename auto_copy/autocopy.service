@@ -2,7 +2,7 @@
 Description=Start auto_copy.py script
 
 [Service]
-ExecStart=/usr/local/bin/auto_copy_daemon.py
+ExecStart=/usr/local/sbin/auto_copy_daemon.py
 KillMode=mixed
 
 [Install]
