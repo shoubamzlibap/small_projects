@@ -2,47 +2,49 @@
 Automatically copy CD/DVD contents after tray close. This is usefull for a headless
 computer that you want to use to copy lots of optical disks to a hard drive.
 This will only work on a Linux machine. I used a fedora 22 server when I developed it, but it
-should work on any Linux distro that has python and HandBrakeCLI. Note that the latter is
-usually not provided in the standard repos, but is available in some additional repo. Google
+should work on any Linux distro that has python, HandBrakeCLI and abcde. Note that the latter
+two are 
+usually not provided in the standard repos, but are available in some additional repo. Google
 will be your friend.
 
-The script auto_copy.py will distinguish between data disks and video DVDs.
+## Requirements
+Requirements are currently not retrieved automatically, but you are responsible to install
+them on your system. For a list of requirements, please check `requirements.txt`.
+
+## Setup
+Use the provided installer to install all the files on your system:
+
+    sudo ./setup.sh install
+
+Similarly, you can get rid of everything:
+
+    sudo ./setup.sh remove
+
+## Configuration
+After installation, there will be a configuration file on your system, `/etc/auto_copy.yml`. 
+As the name suggests, the syntax is yaml. Most options should be described in detail 
+within the comments, so I won't describe them here
+
+## How it works
+The script `auto_copy.py` will distinguish between data disks, audio CDs and video DVDs.
 The contents of data disks (files larger then a configurable size) will be
 copied to a configurable directory.
 Video DVDs will be ripped with HandBrakeCLI, so you will need to install
 that too.
+Audio CDs will be ripped using abcde (which in turn uses a bunch of other tools).
 
-## Setup
-**This is currently outdated - updates should follow soon**
-For now this is very rudimentary and not very userfriendly, but the relevant
-intormation should be there.
+While `auto_copy.py` is the core worker involved here, there is quite a bit of stuff around
+it nessessary to make it work as a daemone that is triggered via insertion of an optical disk.
 
-### auto_copy.py
-Put the script somewhere on your system, possibly where you have access as a normal user as you
-might want to adapt some settings from time to time. I use `/home/isaac/bin/auto_copy.py`.
-Adapt it to your needs, and make sure you put that path in the udev rule described below.
+First, there is `auto_copy_daemon.py`, which is run as a systemd service (`autocopy.service`).
+It receives a signal (`send_siguser1.sh`) from udev uppon insertion (`autodvd.rules`). Since udev fires not only
+when the tray is closed, but also when it opens, we need to distinghuish between open and close.
+Therefore we need a small custom binary, `trayopen`. I did some research, but it seems there is
+no standard tool for that task, so I took the liberty to copy/paste some C code from a forum.
 
-### udev
-Deploy the following udev rule (adapt to your local system)
+That is basically it.
 
-    SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/home/isaac/bin/auto_copy.py"
+If you like to use this and need help setting things up, or have any questions or comments, feel free to 
+contact me at isaac.hailperin@gmail.com.
 
-Put this in a file called /etc/udev/rules.d/auto_copy.rule (or whatever name suits you).  Reboot or reload the udev config with `udevadm control --reload`.
-
-### trayopen
-The script also needs to determine if the tray is open or closed (as this is not
-determined by udev - udev just notices changes). Unfortunatly there is no standard
-tool on Linux to determine this.
-
-Therefor a small C programm is
-provided called `trayopen`. Use the binary from this repo or compile it from source which is
-also provided here (`trayopen.c`).
-You must put the binary in `/usr/local/bin` and make it executable:
-
-    gcc -o trayopen trayopen.c
-    sudo cp trayopen /usr/local/bin
-    sudo chmod 755 /usr/local/bin/trayopen
-
-### HandBrakeCLI
-You will need HandBrakeCLI installed on your system. Use google to find out how to install
-HandBrakeCLI on your linux distribution.
+Happy ripping.
