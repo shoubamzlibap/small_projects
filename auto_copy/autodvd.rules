@@ -1,4 +1,4 @@
 # Call 
 # udevadm control --reload
 # to reload after changes
-SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/usr/local/bin/send_siguser1.sh"
+SUBSYSTEM=="block", KERNEL=="sr0", ACTION=="change", RUN+="/usr/local/sbin/send_siguser1.sh"
