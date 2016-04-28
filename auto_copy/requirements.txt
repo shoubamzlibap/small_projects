@@ -1,0 +1,5 @@
+HandBrakeCLI
+PyYAML
+cdparanoia
+abcde
+lame - if you want mp3
