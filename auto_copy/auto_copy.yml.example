@@ -1,0 +1,22 @@
+# quality for dvd rips
+# one of
+# 'veryfast', 'fast', 'slow', 'veryslow', 'placebo'
+# Check HandBrake for details.
+rip_speed : 'veryslow'
+# mount point for cdrom device
+cdrom_mnt : '/mnt/cdrom'
+# your cdrom device
+cdrom_device : '/dev/sr0'
+# place where data should be put
+data_dir : '/mnt/video/new'
+# minimum size of files to be copied, in MB
+min_file_size : 10
+# maximum number of tracks attempted to be ripped from DVD
+max_tracks : 10
+# file that prevents execution if present
+no_exec_file : '/var/tmp/no_auto_copy'
+# log file
+log_file : '/tmp/auto_copy.log'
+# location of the trayopen binary
+trayopen : '/usr/local/bin/trayopen'
+

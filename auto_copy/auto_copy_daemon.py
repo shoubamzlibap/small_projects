@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+The daemon that calls auto_copy.py uppon optical disc insertion
+"""
+
 import signal, time
 import auto_copy
 
@@ -20,5 +24,6 @@ def signal_handler(dump1, dump2):
     SIGNAL_RECEIVED = True
 
 if __name__ == "__main__":
-    auto_copy.setup_logging()
+    config = auto_copy.read_config('/etc/auto_copy.yml')
+    auto_copy.setup_logging(config)
     run_daemon()
