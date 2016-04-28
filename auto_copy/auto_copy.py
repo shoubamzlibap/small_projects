@@ -133,11 +133,17 @@ def determine_media_type(config):
 
     config: a configParser object
 
-    returns one of ['VIDEO_DVD', 'DATA']
+    returns one of ['VIDEO_DVD', 'DATA', 'AUDIO']
     """
     LOGGER.debug('Determining media type. PID ' + MY_PID)
     media_type = ''
     time.sleep(5)
+    # check for audio first
+    audio_check = config.cdparanoia + ' -Q'
+    result = subprocess.call(audio_check.split(), stdout=DEV_ZERO, stderr=DEV_ZERO)
+    if result == 0:
+        LOGGER.debug('Media type found was AUDIO PID ' + MY_PID)
+        return 'AUDIO'
     mount(config.cdrom_device, config.cdrom_mnt)
     time.sleep(5)
     if os.path.exists(config.cdrom_mnt + '/VIDEO_TS') or os.path.exists(config.cdrom_mnt + '/video_ts'):
@@ -194,6 +200,21 @@ def rip_large_tracks(config):
         LOGGER.debug('Executing: ' + handbrake_cmd)
         with open('/dev/zero', 'w') as dev_zero:
             subprocess.call(handbrake_cmd, stdout=dev_zero, stderr=dev_zero, shell=True)
+
+
+def rip_audio_cd(config):
+    """
+    rip an audio cd
+
+    config: a configParser object
+
+    """
+    LOGGER.info('Starting to rip audio CD')
+    rip_command = config.abcde + ' -N'
+    with open('/dev/zero', 'w') as dev_zero:
+        result = subprocess.call(rip_command.split(), stdout=dev_zero, stderr=dev_zero)
+        if result != 0:
+            LOGGER.warn('Something went wrong ripping the audio CD.')
 
 
 def copy_large_files(config):
@@ -270,6 +291,8 @@ def read_config(config_file):
             'config.log_file': '/tmp/auto_copy.log',
             'trayopen': '/usr/local/bin/trayopen',
             'handbrakecli': '/bin/HandBrakeCLI',
+            'cdparanoia': '/bin/cdparanoia',
+            'abcde': '/bin/abcde',
         },
         allowed_values={
             'rip_speed': ['veryfast', 'fast', 'slow', 'veryslow', 'placebo'],
@@ -337,6 +360,8 @@ def auto_copy(config):
             rip_large_tracks(config)
         elif media_type == 'DATA':
             copy_large_files(config)
+        elif media_type == 'AUDIO':
+            rip_audio_cd(config)
         else:
             LOGGER.warn('Could not determine media type')
         # eject when done
