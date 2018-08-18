@@ -23,7 +23,11 @@ Similarly, you can get rid of everything:
 ## Configuration
 After installation, there will be a configuration file on your system, `/etc/auto_copy.yml`. 
 As the name suggests, the syntax is yaml. Most options should be described in detail 
-within the comments, so I won't describe them here
+within the comments, so I won't describe them here.
+
+Note that abcde, the tool used to rip audio CDs, has its own commented configuration file at 
+`/etc/abcde.conf`. Most usefull to me were the paramters `OUTPUTDIR` and `OUTPUTTYPE`. But
+there are a lot more, have a look.
 
 ## How it works
 The script `auto_copy.py` will distinguish between data disks, audio CDs and video DVDs.
