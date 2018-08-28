@@ -2,4 +2,13 @@
 # call HandBrakeCLI via docker
 # You will need to adjust your volume and devices attached to the container
 
-docker container run --rm -it -v /mnt/video/new:/mnt/video/new -v /mnt/cdrom:/mnt/cdrom --device /dev/sr0 isaach/handbrakecli HandBrakeCLI "$@"
+if [ -t 0 ]; then
+    # we are connected to a terminal
+    docker_opt="it"
+else
+    # we are not connected to a terminal
+    docker_opt="i"
+fi
+
+docker container run --rm -${docker_opt} -v /mnt/video/new:/mnt/video/new -v /mnt/cdrom:/mnt/cdrom --device /dev/sr0 myhandbrake HandBrakeCLI "$@"
+
