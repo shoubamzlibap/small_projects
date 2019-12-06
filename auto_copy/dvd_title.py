@@ -10,9 +10,15 @@ Can be used as a standalone tool or as library.
 # 30-AUG-2018 - Isaac Hailperin <isaac.hailperin@gmail.com> - initial version
 
 from subprocess import PIPE, Popen
+import subprocess
 from imdb import IMDb
 import logging
 
+TMP_FILE = '/tmp/dvd_title.tmp'
+
+###
+# logging setup
+###
 LOG_LEVELS = {
     'info': logging.INFO,
     'debug': logging.DEBUG,
@@ -32,11 +38,21 @@ if DEBUG:
 else:
     DEV_ZERO = open('/dev/zero', 'w')
 
-LOGGER = logging.getLogger('auto_copy')
+LOGGER = logging.getLogger('dvd_title')
 LOGGER.setLevel(LOG_LEVELS[DEFAULT_LOG_LEVEL])
 
 
 def read_title(device='/dev/sr0', handbrakecli='/bin/HandBrakeCLI'):
+    "Read the title of the dvd, as printed by libdvdnav"
+    # invoking awk is a dirty hack, however there were strange characters in the handbrake
+    # output, which I could not get rid of. piping the output through awk did the trick
+    hb_command = [handbrakecli, ' --scan', '-i ', device]
+    LOGGER.debug('hb_command: ' + ' '.join(hb_command))
+    with open(TMP_FILE, 'w+') as tmp_file_fh:
+        subprocess.call(hb_command, stdout=tmp_file_fh, stderr=subprocess.STDOUT)
+    LOGGER.debug('Done with scanning')
+
+def read_title_old(device='/dev/sr0', handbrakecli='/bin/HandBrakeCLI'):
     "Read the title of the dvd, as printed by libdvdnav"
     # invoking awk is a dirty hack, however there were strange characters in the handbrake
     # output, which I could not get rid of. piping the output through awk did the trick
@@ -79,7 +95,18 @@ def title_with_year(device='/dev/sr0', handbrakecli='/bin/HandBrakeCLI'):
     else:
         return dvd_title
 
+def setup_logging():
+    # create console handler
+    ch = logging.StreamHandler()
+    ch.setLevel(LOG_LEVELS[DEFAULT_LOG_LEVEL])
+    # create formatter and add it to the handlers
+    ch_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(ch_formatter)
+    # add the handlers to LOGGER
+    LOGGER.addHandler(ch)
+
 def main():
+    setup_logging()
     print(title_with_year())
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-[Unitt]
+[Unit]
 Description=Start auto_copy.py script
 
 [Service]

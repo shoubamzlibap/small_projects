@@ -1,5 +1,6 @@
 HandBrakeCLI
 PyYAML
+imdbpy
 cdparanoia
 abcde
 lame - if you want mp3

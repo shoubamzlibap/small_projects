@@ -14,6 +14,7 @@ used manually.
 
 # 11-NOV-2015 - Isaac Hailperin <isaac.hailperin@gmail.com> - initial version
 # 28-APR-2016 - Isaac Hailperin <isaac.hailperin@gmail.com> - Refactoring
+# 30-AUG-2018 - Isaac Hailperin <isaac.hailperin@gmail.com> - Adding dvd title detection
 
 import atexit
 import datetime
@@ -25,6 +26,7 @@ import subprocess
 import sys
 import time
 import config_parser
+import dvd_title
 
 # ENVIRONMENT will be passed to subprocess.Popen()
 ENVIRONMENT = {
@@ -186,15 +188,28 @@ def rip_large_tracks(config):
     """
     LOGGER.info('Starting to rip large tracks')
     handbrake_base_cmd = config.handbrakecli + ' -i ' + config.cdrom_device + ' -o ' \
-        + config.data_dir + '/OUTFILE -e x264 -q 20.0 -a 1,2,3 -s 1,2,3 ' \
+        + config.data_dir + '/OUTFILE -e x264 -q 20.0 -a 1,2,3,4,5,6 -s 1,2,3,4,5,6 ' \
         + '-E ffaac -B 160 -6 dpl2 -R Auto -D 0.0 ' \
         + '--audio-copy-mask aac,ac3,dtshd,dts,mp3 --audio-fallback ffac3 ' \
         + '-f mp4 --loose-anamorphic --modulus 2 -m --x264-preset ' \
         + config.rip_speed + ' --h264-profile main --h264-level 4.0 --optimize'
+    LOGGER.debug('Trying to determine dvd title ...')
+    LOGGER.debug('cdrom_device: ' + config.cdrom_device + '; handbrakecli: ' + config.handbrakecli)
+    dvd_title_with_year = dvd_title.title_with_year(
+            device=config.cdrom_device, handbrakecli=config.handbrakecli)
+    LOGGER.debug('dvd title determined as: "' + str(dvd_title_with_year) + '"')
     for track_num in xrange(1, config.max_tracks + 1):
-        outfile_name = 'new_video_' + str(track_num) + '_' \
-            + str(datetime.datetime.now()).replace(' ', '_').replace(':', '-') \
-            + '.mp4'
+        if not dvd_title_with_year:
+            # set a default that at least hints to when the file was ripped
+            outfile_name = 'new_video_' + str(track_num) + '_' \
+                + str(datetime.datetime.now()).replace(' ', '_').replace(':', '-') \
+                + '.mp4'
+        else:
+            appendix = '.mp4'
+            if track_num > 1:
+                appendix = '_' + str(track_num) + '.mp4'
+            # add double quotes around name because the title will contain whitespace
+            outfile_name = '"' + dvd_title_with_year + appendix + '"'
         handbrake_cmd = handbrake_base_cmd.replace('OUTFILE', outfile_name) \
             + ' -t ' + str(track_num)
         LOGGER.debug('Executing: ' + handbrake_cmd)

@@ -8,6 +8,7 @@ files="
     /usr/lib/systemd/system/autocopy.service
     /etc/udev/rules.d/autodvd.rules
     /usr/local/bin/config_parser.py
+    /usr/local/bin/dvd_title.py
     /usr/local/sbin/send_siguser1.sh
     /usr/local/bin/trayopen
 "
@@ -38,6 +39,10 @@ install_files(){
     for binary in ${files}; do
         s_binary=$(basename ${binary})
         install ${s_binary} ${binary} -o root -g root
+        # delete compiled pyc if still around
+        if [ -f ${binary}c ]; then
+            rm ${binary}c
+        fi
     done
     chmod 644 /usr/lib/systemd/system/autocopy.service
     chmod 644 /etc/udev/rules.d/autodvd.rules
@@ -46,6 +51,7 @@ install_files(){
         install auto_copy.yml.example ${config} -o root -g root
     fi
     udevadm control --reload
+    systemctl daemon-reload
     echo "You must start the autocopy service with 'sudo systemctl start autocopy.service'"
     echo "If you want autocopy to automatically start after boot, issue 'sudo systemctl enable autocopy.service'"
 }
