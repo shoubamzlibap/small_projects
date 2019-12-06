@@ -225,9 +225,10 @@ def rip_audio_cd(config):
 
     """
     LOGGER.info('Starting to rip audio CD')
-    rip_command = config.abcde + ' -N'
+    rip_command = config.abcde + ' -N -o mp3:"-b ' + config.mp3_bitrate + '"'
+    LOGGER.debug('Ripping audio with command: "' + rip_command + '"')
     with open('/dev/zero', 'w') as dev_zero:
-        result = subprocess.call(rip_command.split(), stdout=dev_zero, stderr=dev_zero)
+        result = subprocess.call(rip_command, stdout=dev_zero, stderr=dev_zero, shell=True)
         if result != 0:
             LOGGER.warn('Something went wrong ripping the audio CD.')
 
@@ -308,6 +309,7 @@ def read_config(config_file):
             'handbrakecli': '/bin/HandBrakeCLI',
             'cdparanoia': '/bin/cdparanoia',
             'abcde': '/bin/abcde',
+            'mp3_bitrate': '320',
         },
         allowed_values={
             'rip_speed': ['veryfast', 'fast', 'slow', 'veryslow', 'placebo'],

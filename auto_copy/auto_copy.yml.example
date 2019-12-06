@@ -19,4 +19,6 @@ no_exec_file : '/var/tmp/no_auto_copy'
 log_file : '/tmp/auto_copy.log'
 # location of the trayopen binary
 trayopen : '/usr/local/bin/trayopen'
-
+# mp3 bitrate - default is 320. Note: this must be a string.
+# other popular values are 192. 128 is default for lame, but no so nice.
+mp3_bitrate : '320'
