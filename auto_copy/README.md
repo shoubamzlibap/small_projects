@@ -52,3 +52,7 @@ If you like to use this and need help setting things up, or have any questions o
 contact me at isaac.hailperin@gmail.com.
 
 Happy ripping.
+
+## Known Issues
+A while ago I did an attempt at extracting dvd titles automatically. I have added the code,
+even though it does not work yet. I might work on this in the future.
