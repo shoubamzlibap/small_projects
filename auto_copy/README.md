@@ -29,6 +29,13 @@ Note that abcde, the tool used to rip audio CDs, has its own commented configura
 `/etc/abcde.conf`. Most usefull to me were the paramters `OUTPUTDIR` and `OUTPUTTYPE`. But
 there are a lot more, have a look.
 
+In June 2020 freedb.org stopped its service. At least for older installations of abcde,
+freedb.org is the default cddb database. Alternatives exist, but need to be configured
+if not already done. In `/etc/abcde.conf`, set e.g.
+
+    CDDBURL="http://gnudb.gnudb.org/~cddb/cddb.cgi"
+
+
 ## How it works
 The script `auto_copy.py` will distinguish between data disks, audio CDs and video DVDs.
 The contents of data disks (files larger then a configurable size) will be
